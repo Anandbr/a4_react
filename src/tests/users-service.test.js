@@ -14,6 +14,7 @@ describe('createUser', () => {
 
   // setup test before running test
   beforeAll(() => {
+    // use return, Jest will wait for this promise to resolve before running tests.
     // remove any/all users to make sure we create it in the test
     return deleteUsersByUsername(ripley.username);
   })
@@ -46,6 +47,7 @@ describe('deleteUsersByUsername', () => {
 
   // setup the tests before verification
   beforeAll(() => {
+    // use return, Jest will wait for this promise to resolve before running tests.
     // insert the sample user we then try to remove
     return createUser(sowell);
   });
@@ -65,7 +67,7 @@ describe('deleteUsersByUsername', () => {
   });
 });
 
-describe('findUserById',  () => {
+describe('findUserById', () => {
   // sample user we want to retrieve
   const adam = {
     username: 'adam_smith',
@@ -75,11 +77,12 @@ describe('findUserById',  () => {
 
   // setup before running test
   beforeAll(() => {
+    // use return, Jest will wait for this promise to resolve before running tests.
     // clean up before the test making sure the user doesn't already exist
     return deleteUsersByUsername(adam.username)
   });
 
-  // clean up after ourselves
+  // clean up after test runs
   afterAll(() => {
     // remove any data we inserted
     return deleteUsersByUsername(adam.username);
@@ -105,7 +108,7 @@ describe('findUserById',  () => {
 });
 
 
-describe('findAllUsers',  () => {
+describe('findAllUsers', () => {
 
   // sample users we'll insert to then retrieve
   const usernames = [
@@ -114,34 +117,36 @@ describe('findAllUsers',  () => {
 
   // setup data before test
   beforeAll(() =>
-    // insert several known users
-    usernames.map(username =>
-      createUser({
-        username,
-        password: `${username}123`,
-        email: `${username}@stooges.com`
-      })
-    )
+      //.map() is not promise-aware
+      // use Promise.all to to wait until all promises(insert users) are done
+      Promise.all(usernames.map(username =>
+              createUser({
+                username: username,
+                password: `${username}123`,
+                email: `${username}@stooges.com`
+              })
+          )
+      )
   );
 
-  // clean up after ourselves
+  // clean up after test runs
   afterAll(() =>
-    // delete the users we inserted
-    usernames.map(username =>
-      deleteUsersByUsername(username)
-    )
+      //.map() is not promise-aware
+      // use Promise.all to wait until all promises(delete user operations) are done
+      Promise.all(usernames.map(username =>
+          deleteUsersByUsername(username)
+      ))
   );
 
   test('can retrieve all users from REST API', async () => {
     // retrieve all the users
     const users = await findAllUsers();
-
     // there should be a minimum number of users
     expect(users.length).toBeGreaterThanOrEqual(usernames.length);
 
     // let's check each user we inserted
     const usersWeInserted = users.filter(
-      user => usernames.indexOf(user.username) >= 0);
+        user => usernames.indexOf(user.username) >= 0);
 
     // compare the actual users in database with the ones we sent
     usersWeInserted.forEach(user => {
